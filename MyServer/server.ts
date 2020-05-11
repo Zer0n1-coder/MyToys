@@ -11,17 +11,17 @@ http.createServer(function (req, res) {
 
     let contentType: string;
     if (filename[filename.length - 1] === '\\') {
-        if (config.faultHtml !== undefined)
-            filename += config.faultHtml;
+        if (config.defaultHtml !== undefined)
+            filename += config.defaultHtml;
         else
             filename += 'index.html';
 
         contentType = "text/html;charset=utf-8";
     }
     else if (filename.indexOf('.') === -1) {
-        if (config.faultSuffix !== undefined) {
-            filename += '.' + config.faultSuffix;
-            contentType = types[config.faultSuffix];
+        if (config.defaultSuffix !== undefined) {
+            filename += '.' + config.defaultSuffix;
+            contentType = types[config.defaultSuffix];
         }
         else {
             filename += '.js';

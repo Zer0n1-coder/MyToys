@@ -1,13 +1,13 @@
 ﻿import * as fs from "fs";
 
 export class MyConfig {
-    faultHtml: string;
-    faultSuffix: string;
+    defaultHtml: string;
+    defaultSuffix: string;
 
     constructor(path = './myconfig.json') {
         let data = fs.readFileSync(path, "utf8");
         let jsonObject = JSON.parse(data);
-        this.faultHtml = jsonObject.faultHtml;
-        this.faultSuffix = jsonObject.faultSuffix;
+        this.defaultHtml = jsonObject.defaultHtml;
+        this.defaultSuffix = jsonObject.defaultSuffix;
     }
 }

@@ -1,4 +1,4 @@
 {
-	"faultHtml" : "index.html",
-	"faultSuffix":"js"
+	"defaultHtml" : "index.html",
+	"defaultSuffix":"js"
 }
