@@ -8,7 +8,7 @@ protected:
 	{
 		constexpr SmartPtrStorage() noexcept = default;
 		~SmartPtrStorage()noexcept { if (ptr) { delete ptr; ptr = nullptr; } }
-		T*				ptr{nullptr};
+		T*			ptr{nullptr};
 		unsigned long		count{1};
 	};
 
@@ -51,8 +51,8 @@ public:
 		return *this;
 	}
 
-	MySmartPtr* operator->()const noexcept { return get(); }
-	MySmartPtr& operator*()const noexcept { return *get(); }
+	T* operator->()const noexcept { return get(); }
+	T& operator*()const noexcept { return *get(); }
 
 	operator bool()
 	{
