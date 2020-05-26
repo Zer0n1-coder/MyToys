@@ -6,51 +6,41 @@ class MySmartPtr final
 protected:
 	struct SmartPtrStorage
 	{
+		constexpr SmartPtrStorage() noexcept = default;
+		~SmartPtrStorage()noexcept { if (ptr) { delete ptr; ptr = nullptr; } }
 		T*				ptr{nullptr};
 		unsigned long		count{1};
 	};
 
 public:
-	MySmartPtr(){}
+	constexpr MySmartPtr() noexcept{}
+	constexpr MySmartPtr(nullptr_t) noexcept {}
 
-	explicit MySmartPtr(T* ptr)
-	{
-		if (ptr)
-		{
-			_storge = new SmartPtrStorage();
-			_storge->ptr = ptr;
-		}
-	}
-
-	MySmartPtr(const MySmartPtr& ptr)
+	MySmartPtr(const MySmartPtr& ptr) noexcept
 	{
 		_storge = ptr._storge;
 		_MT_INCR(_storge->count);
 	}
 
-	~MySmartPtr()
+	~MySmartPtr() noexcept
 	{
 		if (_storge)
 		{
 			if (_MT_DECR(_storge->count) == 0)
-			{
-				delete _storge->ptr;
 				delete _storge;
-			}
 		}
 	}
 
 public:
-	MySmartPtr& operator=(const MySmartPtr& ptr)
+	MySmartPtr& operator=(const MySmartPtr& ptr) noexcept
 	{
 		if (this == &ptr)
 			return *this;
 
-		if (this->_storge)
+		if (_storge)
 		{
 			if (_MT_DECR(_storge->count) == 0)
 			{
-				delete _storge->ptr;
 				delete _storge;
 				_storge = nullptr;
 			}
@@ -61,6 +51,9 @@ public:
 		return *this;
 	}
 
+	MySmartPtr* operator->()const noexcept { return get(); }
+	MySmartPtr& operator*()const noexcept { return *get(); }
+
 	operator bool()
 	{
 		if (_storge && _storge->ptr)
@@ -69,22 +62,28 @@ public:
 			return false;
 	}
 public:
-	T* get()
+	long count()const noexcept{ return _storge ? static_cast<long>(_storge->count):0; }
+
+	T* get() const noexcept { _storge? _storge->ptr : nullptr; }
+private:
+	explicit MySmartPtr(T* ptr)
 	{
-		if (_storge)
-		{
-			return _storge->ptr;
-		}
-		else
-			return nullptr;
+		_storge = new SmartPtrStorage();
+		_storge->ptr = ptr;
 	}
 
+	static void* operator new(size_t) = delete;
+	static void operator delete(void*) = delete;
+
 private:
+	template<class Type, class...Types>
+	friend MySmartPtr<Type> make_ptr(Types&&... args);
+
 	SmartPtrStorage* _storge{nullptr};
 };
 
-template<class T,class...Types>
-MySmartPtr<T> make_ptr(Types&&... args)
+template<class Type,class...Types>
+MySmartPtr<Type> make_ptr(Types&&... args)
 {
-	return MySmartPtr<T>(new T(std::forward<Types>(args)...));
+	return MySmartPtr<Type>(new Type(std::forward<Types>(args)...));
 }
