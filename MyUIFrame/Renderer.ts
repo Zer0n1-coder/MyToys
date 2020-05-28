@@ -1,6 +1,7 @@
 import { Widget } from "./Widget";
-import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, globalShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue} from "./RenderContext";
+import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, globalShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture} from "./RenderContext";
 import { mousedown, mouseup, mousemove } from "./EventHandle";
+import { mat4, vec3, glMatrix } from "./gl-matrix-ts/index";
 
 export class Renderer{
     static init(){
@@ -12,6 +13,55 @@ export class Renderer{
         canvas.addEventListener('click', function () {
             canvas.focus();
         });
+
+        let VBO = gl.createBuffer();
+
+        let vertices = new Float32Array([
+            // 位置     // 纹理
+            0.0, 1.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+
+            0.0, 1.0, 0.0, 1.0,
+            1.0, 1.0, 1.0, 1.0,
+            1.0, 0.0, 1.0, 0.0
+        ]);
+
+        let tmpVAO = gl.createVertexArray();
+        if(tmpVAO === null){
+            alert("unable to create VAO!")
+            return;
+        }
+        this.VAO = tmpVAO;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, VBO);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+        gl.bindVertexArray(this.VAO);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 4 * Float32Array.BYTES_PER_ELEMENT, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindVertexArray(null);
+
+        desktopShader.use();
+        desktopShader.setInt("desktop", 0);
+        desktopShader.setMat4("projection",projection);
+    }
+
+    static drawDesktop(){
+        let model = mat4.create();
+        mat4.translate(model, model, vec3.fromValues(0, 0, 0.0));
+
+        mat4.scale(model, model, vec3.fromValues(SCR_WIDTH, SCR_HEIGHT, 1.0));
+
+        desktopShader.setMat4("model", model,true);
+
+        gl.activeTexture(gl.TEXTURE0);
+        desktopTexture.bind();
+
+        gl.bindVertexArray(this.VAO);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.bindVertexArray(null);
     }
 
     static render(widget:Widget){
@@ -34,6 +84,8 @@ export class Renderer{
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
+            Renderer.drawDesktop();
+
             if(mouseupQueue.length >0){
                 widget.mouseReleaseEvent(mouseupQueue[0]);
                 mouseupQueue.length = 0;
@@ -51,4 +103,6 @@ export class Renderer{
 
         frame();
     }
+
+    private static VAO : WebGLVertexArrayObject;
 }

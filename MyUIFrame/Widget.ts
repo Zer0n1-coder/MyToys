@@ -69,16 +69,33 @@ export class Widget extends Object_{
             return;
 
         let model = mat4.create();
-        if(mousemoveQueue.length > 0&& this.pointed){
+        if(mousemoveQueue.length > 0 && this.intersectPointed){
             this.origin[0] += mousemoveQueue[0].movementX;
             this.origin[1] += mousemoveQueue[0].movementY;
         }
+        if(mousemoveQueue.length > 0 && this.inrangePointed !== 0){
+            if(this.inrangePointed === 1){
+                this.origin[1] += mousemoveQueue[0].movementY;
+                this.height -= mousemoveQueue[0].movementY;
+            }
+            else if(this.inrangePointed === 2){
+                this.origin[0] += mousemoveQueue[0].movementX;
+                this.width -= mousemoveQueue[0].movementX;
+            }
+            else if(this.inrangePointed === 3){
+                //this.origin[1] += mousemoveQueue[0].movementY;
+                this.height += mousemoveQueue[0].movementY;
+            }
+            else if(this.inrangePointed === 4){
+                //this.origin[2] += mousemoveQueue[0].movementY;
+                this.width += mousemoveQueue[0].movementX;
+            }
+        }
 
         mat4.translate(model, model, vec3.fromValues(this.origin[0], this.origin[1], 0.0));
-
         mat4.scale(model, model, vec3.fromValues(this.width, this.height, 1.0));
 
-        globalShader.setMat4("model", model);
+        globalShader.setMat4("model", model,true);
         //globalShader.setVec3("spriteColor", color);
 
         gl.bindVertexArray(this.VAO);
@@ -87,10 +104,13 @@ export class Widget extends Object_{
     }
     mousePressEvent(ev:MouseEvent){
         if(this.intersect([ev.offsetX,ev.offsetY]))
-            this.pointed = true;
+            this.intersectPointed = true;
+        else
+            this.inrangePointed =this.inRange([ev.offsetX,ev.offsetY]);
     }
     mouseReleaseEvent(ev:MouseEvent){
-        this.pointed = false;
+        this.intersectPointed = false;
+        this.inrangePointed =0;
     }
     intersect(mousePos:number[]){
         if(mousePos[0] > this.origin[0] && mousePos[1] > this.origin[1] &&mousePos[0] < (this.origin[0] + this.width)&&mousePos[1] < (this.origin[1] + this.height))
@@ -99,11 +119,29 @@ export class Widget extends Object_{
             return false;
     }
 
+    inRange(mousePos:number[]){
+        if(mousePos[0] > this.origin[0] && mousePos[0] < (this.origin[0] + this.width) && mousePos[1] > (this.origin[1] - 10)&& mousePos[1] < this.origin[1]){
+            return 1;
+        }
+        else if(mousePos[0] > (this.origin[0] - 10) &&mousePos[0] < this.origin[0] && mousePos[1] > this.origin[1] && mousePos[1] < (this.origin[1] + this.height)){
+            return 2;
+        }
+        else if(mousePos[0] > this.origin[0] && mousePos[0] < (this.origin[0] + this.width) && mousePos[1] < (this.origin[1] + this.height + 10)&& mousePos[1] > (this.origin[1] + this.height)){
+            return 3;
+        }
+        else if(mousePos[0] < (this.origin[0] + this.width + 10) &&mousePos[0] > (this.origin[0] + this.width) && mousePos[1] > this.origin[1] && mousePos[1] < (this.origin[1] + this.height)){
+            return 4;
+        }
+        else
+            return 0;
+    }
+
     private children : Widget[];
     private parent : Widget | null;
     private width : number;
     private height : number;
     private origin : number[];
     private showed : boolean;
-    private pointed = false;
+    private intersectPointed = false;
+    private inrangePointed = 0;
 }
