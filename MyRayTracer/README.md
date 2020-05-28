@@ -3,4 +3,4 @@
 ## 说明
 1. 没有使用外部库，有助于深入理解整个光线追踪器的每一个步骤流程；
 ## 效果
-![Image text](https://github.com/Zer0n1-coder/MyToys/blob/master/MyRayTracer/out.jpg)
+![效果](https://github.com/Zer0n1-coder/MyToys/blob/master/MyRayTracer/out.jpg)  
