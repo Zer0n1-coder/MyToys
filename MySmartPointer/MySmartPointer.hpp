@@ -1,4 +1,22 @@
 #pragma once
+#include <mutex>
+
+template<class T>
+class LockingProxy
+{
+public:
+	LockingProxy(T* ptr, std::mutex& mutex)noexcept :_ptr(ptr),_ptrMutex(&mutex) { _ptrMutex->lock(); }
+	constexpr explicit LockingProxy(std::nullptr_t)noexcept {}
+	~LockingProxy() { if(_ptrMutex) _ptrMutex->unlock(); }
+
+	T* operator->()const noexcept { return _ptr; }
+	T& operator*()const noexcept { return *_ptr; }
+
+	LockingProxy& operator=(const LockingProxy&) = delete;
+private:
+	std::mutex*		_ptrMutex{nullptr};
+	T*				_ptr{ nullptr };
+};
 
 template<class T>
 class MySmartPtr final
@@ -8,7 +26,8 @@ protected:
 	{
 		constexpr SmartPtrStorage() noexcept = default;
 		~SmartPtrStorage()noexcept { if (ptr) { delete ptr; ptr = nullptr; } }
-		T*			ptr{nullptr};
+		std::mutex			ptr_mutex;
+		T*					ptr{nullptr};
 		unsigned long		count{1};
 	};
 
@@ -51,8 +70,8 @@ public:
 		return *this;
 	}
 
-	T* operator->()const noexcept { return get(); }
-	T& operator*()const noexcept { return *get(); }
+	LockingProxy<T> operator->()const noexcept { return _storge? LockingProxy<T>(_storge->ptr,_storge->ptr_mutex):  LockingProxy<T>(nullptr); }
+	LockingProxy<T> operator*()const noexcept { return _storge ? LockingProxy<T>(_storge->ptr, _storge->ptr_mutex) :  LockingProxy<T>(nullptr); }
 
 	operator bool()
 	{
