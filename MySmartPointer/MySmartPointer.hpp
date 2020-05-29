@@ -15,7 +15,7 @@ public:
 	LockingProxy& operator=(const LockingProxy&) = delete;
 private:
 	std::mutex*		_ptrMutex{nullptr};
-	T*				_ptr{ nullptr };
+	T*			_ptr{ nullptr };
 };
 
 template<class T>
@@ -26,8 +26,8 @@ protected:
 	{
 		constexpr SmartPtrStorage() noexcept = default;
 		~SmartPtrStorage()noexcept { if (ptr) { delete ptr; ptr = nullptr; } }
-		std::mutex			ptr_mutex;
-		T*					ptr{nullptr};
+		std::mutex		ptr_mutex;
+		T*			ptr{nullptr};
 		unsigned long		count{1};
 	};
 
