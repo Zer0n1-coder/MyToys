@@ -1,6 +1,5 @@
 ﻿import {gl}from "./RenderContext"
 
-
 export class Texture2D {
     id!: WebGLTexture;
 

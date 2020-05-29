@@ -1,7 +1,7 @@
 import { Widget } from "./Widget";
-import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, globalShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture} from "./RenderContext";
+import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, widgetShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture, renderObjects} from "./RenderContext";
 import { mousedown, mouseup, mousemove } from "./EventHandle";
-import { mat4, vec3, glMatrix } from "./gl-matrix-ts/index";
+import { mat4, vec3 } from "./gl-matrix-ts/index";
 
 export class Renderer{
     static init(){
@@ -64,7 +64,7 @@ export class Renderer{
         gl.bindVertexArray(null);
     }
 
-    static render(widget:Widget){
+    static render(){
         Renderer.init();
 
         gl.viewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -72,10 +72,11 @@ export class Renderer{
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
         
-        globalShader.use();
-        globalShader.setMat4("projection", projection);
+        widgetShader.use();
+        widgetShader.setMat4("projection", projection);
 
-        widget.onDraw();
+        for(let widget of renderObjects)
+            widget.onFirst();
 
         function frame() {
             //let currentFrame = (new Date).getTime() / 1000;
@@ -86,16 +87,12 @@ export class Renderer{
 
             Renderer.drawDesktop();
 
-            if(mouseupQueue.length >0){
-                widget.mouseReleaseEvent(mouseupQueue[0]);
-                mouseupQueue.length = 0;
+            for(let widget of renderObjects){
+                widget.onUpdate();
             }
-                
-            if(mousedownQueue.length > 0){
-                widget.mousePressEvent(mousedownQueue[0]);
-                mousedownQueue.length = 0;
-            }
-            widget.onUpdate();
+            mouseupQueue.length = 0;
+            mousedownQueue.length = 0;
+            mousemoveQueue.length = 0;
             mousemoveQueue.length = 0;
 
             requestAnimationFrame(frame);
