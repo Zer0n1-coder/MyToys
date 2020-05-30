@@ -5,3 +5,5 @@
 2. 控件基类widget底子已经打好，采用webgl的shader和texture可以方便的实现自定义控件以及各种控件渲染效果（之后会随着功能的添加进行扩展）；
 3. 控件已经实现拖拽、伸缩等功能（目前实现得比较生硬，之后会改善）；
 4. 开始有uwp范了，win10桌面界面的透明效果，在该框架中可以轻松使用混合技术实现。
+## 当前效果
+![效果](https://github.com/Zer0n1-coder/MyToys/blob/master/MyUIFrame/rendering.jpg)  
