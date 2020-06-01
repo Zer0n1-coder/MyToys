@@ -1,7 +1,7 @@
 #pragma once
 #include<type_traits>
 
-//moneyÁ¿¸Ù,rateÎª¶Ò»»Ò»ÖÖÖĞ¼ä»õ±ÒµÄ»ãÂÊ£¬´Ë´¦¼ÙÉèRMBÎªÖĞ¼ä»õ±Ò
+//moneyé‡çº²,rateä¸ºå…‘æ¢ä¸€ç§ä¸­é—´è´§å¸çš„æ±‡ç‡ï¼Œæ­¤å¤„å‡è®¾RMBä¸ºä¸­é—´è´§å¸
 struct Dollar
 {
 	static constexpr float rate = 7.0;
@@ -12,50 +12,50 @@ struct RMB
 	static constexpr float rate = 1.0;
 };
 
-//ÀûÓÃSFINAEÈÃ²»º¬ÓĞrateµÄclass²»ÔÊĞí³õÊ¼»¯£¬×¢£º±¾ÏëÊ¹ÓÃconceptµÄ£¬µ«ÊÇµ±Ç°±àÒëÆ÷²»Ö§³Ö
+//åˆ©ç”¨SFINAEè®©ä¸å«æœ‰rateçš„classä¸å…è®¸åˆå§‹åŒ–ï¼Œæ³¨ï¼šæœ¬æƒ³ä½¿ç”¨conceptçš„ï¼Œä½†æ˜¯å½“å‰ç¼–è¯‘å™¨ä¸æ”¯æŒ
 template<class T,class = void>
 class Money final
 {
-	Money(){}
-	~Money(){}
+	constexpr Money(){}
+	~Money() = delete;
 };
 
 template<class T>
-class Money<T,std::void_t<decltype(T::rate)>> final		//final½ûÖ¹±»¼Ì³Ğ
+class Money<T,std::void_t<decltype(T::rate)>> final		//finalç¦æ­¢è¢«ç»§æ‰¿
 {
 public:
-	Money() = default;			//Ê¹ÓÃÄ¬ÈÏµÄ
+	Money() = default;			//ä½¿ç”¨é»˜è®¤çš„
 	~Money() = default;
 
-	explicit Money(const double balance)noexcept : _balance{ balance } {}		//²»Å×Òì³£
-	Money(const Money& money) = delete;		//É¾³ı¿½±´¹¹Ôìº¯Êı
-	Money(Money&& money) noexcept { _balance = money._balance;  money._balance = 0.0; }		//ÒÆ¶¯¹¹Ôìº¯Êı
+	explicit Money(const double balance)noexcept : _balance{ balance } {}		//ä¸æŠ›å¼‚å¸¸
+	Money(const Money& money) = delete;		//åˆ é™¤æ‹·è´æ„é€ å‡½æ•°
+	Money(Money&& money) noexcept { _balance = money._balance;  money._balance = 0.0; }		//ç§»åŠ¨æ„é€ å‡½æ•°
 
 public:
-	Money& operator=(const Money& money) = delete;		//É¾³ı¿½±´¸³ÖµÔËËã·û
-	Money& operator=(Money&& money){ _balance = money._balance; money._balance = 0.0; }		//ÒÆ¶¯¸³ÖµÔËËã·û
+	Money& operator=(const Money& money) = delete;		//åˆ é™¤æ‹·è´èµ‹å€¼è¿ç®—ç¬¦
+	Money& operator=(Money&& money){ _balance = money._balance; money._balance = 0.0; }		//ç§»åŠ¨èµ‹å€¼è¿ç®—ç¬¦
 
-	Money& operator++() { _balance += 1.0; return *this; }				//Ñ¡Ôñ¾ßÓĞ´ú±íĞÔµÄ++ÔËËã·û½øĞĞÖØÔØ£¬ÆäËûµÄÀàËÆ
+	Money& operator++() { _balance += 1.0; return *this; }				//é€‰æ‹©å…·æœ‰ä»£è¡¨æ€§çš„++è¿ç®—ç¬¦è¿›è¡Œé‡è½½ï¼Œå…¶ä»–çš„ç±»ä¼¼
 	Money operator++(int) { double tmp = _balance; _balance += 1.0;  return Money(tmp); }
 
-	operator bool() { if (_balance <= 0.000001) return false; return true; }		//ÀàĞÍ×ª»»ÔËËã·û
+	operator bool() { if (_balance <= 0.000001) return false; return true; }		//ç±»å‹è½¬æ¢è¿ç®—ç¬¦
 
-public: //ÖØÔØnew deleteÔËËã·û
+public: //é‡è½½new deleteè¿ç®—ç¬¦
 	static void* operator new(rsize_t){ void* ptr = malloc(sizeof(Money)); return ptr; }  
 	static void operator delete(void* ptr) { free(ptr); }
 
-public://·ÃÎÊ½Ó¿Ú
+public://è®¿é—®æ¥å£
 	void setBalance(const double balance) { _balance = balance; }
 
 	double getBalance() { return _balance; }
 	double getBalance()const { return _balance; }
 
 private:
-	double	_balance{0.0};	//³õÊ¼»¯ÁĞ±í
+	double	_balance{0.0};	//åˆå§‹åŒ–åˆ—è¡¨
 };
 
 
-//»õ±Ò×ª»»
+//è´§å¸è½¬æ¢
 template<class T1,class T2>
 auto convert(Money<T1>&& money)->Money<T2>
 {
@@ -65,10 +65,10 @@ auto convert(Money<T1>&& money)->Money<T2>
 	return Money<T2>(tmp * T1::rate / T2::rate);
 }
 
-//×ªÕË
+//è½¬è´¦
 template<class T>
 T transferAccounts(T&& money)
 {
-	return T(std::forward<T>(money));		//ÍêÃÀ×ª·¢
+	return T(std::forward<T>(money));		//å®Œç¾è½¬å‘
 	//return T(money);
 }
