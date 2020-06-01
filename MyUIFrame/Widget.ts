@@ -13,14 +13,17 @@ export class Widget extends Object_{
         this.minHeight = 20;
         this.maxHeight = 500;
         this.height = 0;
-        this.origin = [0,0];
-        this.showed = true;
-        this.color = [1.0,1.0,1.0,0.4];
-
         if(parent){
             parent.children.push(this);
             this.parent = parent;
+            this.originCoord = [parent.originCoord[0],parent.originCoord[1]];
+            this.zbuffer = parent.zbuffer+ 0.001;
         }
+        else
+            this.originCoord = [0,0];
+
+        this.color = [1,1,1,0.4];
+            
         renderObjects.push(this);
     }
 
@@ -39,6 +42,9 @@ export class Widget extends Object_{
         else if(width > this.maxWidth)
             this.maxWidth = width;
     }
+    setZ(z : number){
+        this.zbuffer = z;
+    }
     setHeight(height:number){
         this.height = height;
         if(this.height < this.minHeight)
@@ -46,14 +52,23 @@ export class Widget extends Object_{
         else if(this.height > this.maxHeight)
             this.maxHeight = height;
     }
-    setOrigin(origin:number[]){
-        this.origin = origin;
+    setOrigin(orig:number[]){
+        if(this.parent)
+            this.originCoord = [orig[0] + this.originCoord[0], orig[1] + this.originCoord[1]];
+        else
+            this.originCoord = orig;
     }
     setColor(color:number[]){
-        this.color = color;
+        this.color[0] = color[0];
+        this.color[1] = color[1];
+        this.color[2] = color[2];
     }
 
-    //onFirst 和onUpdate 函数都是提供给渲染器调用，不能被重载
+    getZbuffer(){
+        return this.zbuffer;
+    }
+
+    //onFirst 和onUpdate 函数都是提供给渲染器调用，不要重载
     onFirst(){
         this.drawEvent();
     }
@@ -68,7 +83,13 @@ export class Widget extends Object_{
         }
             
         if(mousedownQueue.length > 0){
-            this.mousePressEvent(mousedownQueue[0]);
+            if(this.intersect([mousedownQueue[0].offsetX,mousedownQueue[0].offsetY])){
+                this.intersectPointed = true;
+                this.mousePressEvent(mousedownQueue[0]);
+            }
+            else{
+                this.inrangePointed =this.inRange([mousedownQueue[0].offsetX,mousedownQueue[0].offsetY]);
+            }   
         }
 
         if(mousemoveQueue.length > 0 &&this.intersect([mousemoveQueue[0].offsetX,mousemoveQueue[0].offsetY])&&!this.inOfRange){
@@ -85,11 +106,12 @@ export class Widget extends Object_{
         //渲染控件
         let model = mat4.create();
 
-        mat4.translate(model, model, vec3.fromValues(this.origin[0], this.origin[1], 0.0));
+        mat4.translate(model, model, vec3.fromValues(this.originCoord[0], this.originCoord[1], 0.0));
         mat4.scale(model, model, vec3.fromValues(this.width, this.height, 1.0));
 
         widgetShader.setMat4("model", model,true);
         widgetShader.setVec4("color",this.changeColor,true);
+        widgetShader.setFloat("zbuffer",this.zbuffer,true);
         gl.bindVertexArray(this.VAO);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindVertexArray(null);
@@ -114,10 +136,6 @@ export class Widget extends Object_{
     }
 
     protected mousePressEvent(ev:MouseEvent){
-        if(this.intersect([ev.offsetX,ev.offsetY]))
-            this.intersectPointed = true;
-        else
-            this.inrangePointed =this.inRange([ev.offsetX,ev.offsetY]);
     }
     protected mouseReleaseEvent(ev:MouseEvent){
         this.intersectPointed = false;
@@ -159,53 +177,57 @@ export class Widget extends Object_{
     //private:
     private updateFrame(){
         this.changeColor = [this.color[0],this.color[1],this.color[2],this.color[3]];
-        if(this.intersect(curCoord)){
-            console.log(curCoord);
-            this.changeColor[3] += 0.3;
+        if(this.intersect(curCoord) && this.enableFocusChange){
+            this.changeColor[3] += 0.2;
         }
 
-        if(mousemoveQueue.length > 0 && this.intersectPointed){
-            this.origin[0] += mousemoveQueue[0].movementX;
-            this.origin[1] += mousemoveQueue[0].movementY;
+        if(mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove){
+            for(let mousemoveEvent of mousemoveQueue){
+                this.originCoord[0] += mousemoveEvent.movementX;
+                this.originCoord[1] += mousemoveEvent.movementY;
+            }
         }
-        if(mousemoveQueue.length > 0 && this.inrangePointed !== 0){
+        if(mousemoveQueue.length > 0 && this.inrangePointed !== 0 && this.enableSize){
             if(this.inrangePointed === 1){
                 let tmpHeight = this.height;
-                tmpHeight -= mousemoveQueue[0].movementY;
+                for(let mousemoveEvent of mousemoveQueue)
+                    tmpHeight -= mousemoveEvent.movementY;
 
                 if(tmpHeight < this.minHeight){
-                    this.origin[1] += (this.height - this.minHeight);
+                    this.originCoord[1] += (this.height - this.minHeight);
                     this.height = this.minHeight;
                 }
                 else if(tmpHeight > this.maxHeight){
-                    this.origin[1] += (this.height - this.maxHeight);
+                    this.originCoord[1] += (this.height - this.maxHeight);
                     this.height = this.maxHeight;
                 }
                 else{
-                    this.origin[1] += mousemoveQueue[0].movementY;
+                    this.originCoord[1] += (this.height - tmpHeight);
                     this.height = tmpHeight;
                 }
             }
             else if(this.inrangePointed === 2){
                 let tmpWidth = this.width;
-                tmpWidth -= mousemoveQueue[0].movementX;
+                for(let mousemoveEvent of mousemoveQueue)
+                    tmpWidth -= mousemoveEvent.movementX;
 
                 if(tmpWidth < this.minWidth){
-                    this.origin[0] += (this.width - this.minWidth);
+                    this.originCoord[0] += (this.width - this.minWidth);
                     this.width = this.minWidth;
                 }
                 else if(tmpWidth > this.maxWidth){
-                    this.origin[0] += (this.width - this.maxWidth);
+                    this.originCoord[0] += (this.width - this.maxWidth);
                     this.width = this.maxWidth;
                 }
                 else{
-                    this.origin[0] += mousemoveQueue[0].movementX;
+                    this.originCoord[0] += (this.width - tmpWidth);
                     this.width = tmpWidth;
                 }
             }
             else if(this.inrangePointed === 3){
                 let tmpHeight = this.height;
-                tmpHeight += mousemoveQueue[0].movementY;
+                for(let mousemoveEvent of mousemoveQueue)
+                    tmpHeight += mousemoveEvent.movementY;
 
                 if(tmpHeight < this.minHeight){
                     this.height = this.minHeight;
@@ -219,7 +241,9 @@ export class Widget extends Object_{
             }
             else if(this.inrangePointed === 4){
                 let tmpWidth = this.width;
-                tmpWidth += mousemoveQueue[0].movementX;
+
+                for(let mousemoveEvent of mousemoveQueue)
+                    tmpWidth += mousemoveEvent.movementX;
 
                 if(tmpWidth < this.minWidth){
                     this.width = this.minWidth;
@@ -235,42 +259,46 @@ export class Widget extends Object_{
     }
 
     private intersect(mousePos:number[]){
-        if(mousePos[0] > this.origin[0] && mousePos[1] > this.origin[1] &&mousePos[0] < (this.origin[0] + this.width)&&mousePos[1] < (this.origin[1] + this.height))
+        if(mousePos[0] > this.originCoord[0] && mousePos[1] > this.originCoord[1] &&mousePos[0] < (this.originCoord[0] + this.width)&&mousePos[1] < (this.originCoord[1] + this.height))
             return true;
         else
             return false;
     }
 
     private inRange(mousePos:number[]){
-        if(mousePos[0] > this.origin[0] && mousePos[0] < (this.origin[0] + this.width) && mousePos[1] > (this.origin[1] - 10)&& mousePos[1] < this.origin[1]){
+        if(mousePos[0] > this.originCoord[0] && mousePos[0] < (this.originCoord[0] + this.width) && mousePos[1] > (this.originCoord[1] - 10)&& mousePos[1] < this.originCoord[1]){
             return 1;
         }
-        else if(mousePos[0] > (this.origin[0] - 10) &&mousePos[0] < this.origin[0] && mousePos[1] > this.origin[1] && mousePos[1] < (this.origin[1] + this.height)){
+        else if(mousePos[0] > (this.originCoord[0] - 10) &&mousePos[0] < this.originCoord[0] && mousePos[1] > this.originCoord[1] && mousePos[1] < (this.originCoord[1] + this.height)){
             return 2;
         }
-        else if(mousePos[0] > this.origin[0] && mousePos[0] < (this.origin[0] + this.width) && mousePos[1] < (this.origin[1] + this.height + 10)&& mousePos[1] > (this.origin[1] + this.height)){
+        else if(mousePos[0] > this.originCoord[0] && mousePos[0] < (this.originCoord[0] + this.width) && mousePos[1] < (this.originCoord[1] + this.height + 10)&& mousePos[1] > (this.originCoord[1] + this.height)){
             return 3;
         }
-        else if(mousePos[0] < (this.origin[0] + this.width + 10) &&mousePos[0] > (this.origin[0] + this.width) && mousePos[1] > this.origin[1] && mousePos[1] < (this.origin[1] + this.height)){
+        else if(mousePos[0] < (this.originCoord[0] + this.width + 10) &&mousePos[0] > (this.originCoord[0] + this.width) && mousePos[1] > this.originCoord[1] && mousePos[1] < (this.originCoord[1] + this.height)){
             return 4;
         }
         else
             return 0;
     }
 
-    private children : Widget[];
-    private parent : Widget | null;
-    private width : number;
-    private minWidth:number;
-    private maxWidth:number;
-    private minHeight:number;
-    private maxHeight:number;
-    private height : number;
-    private origin : number[];
-    private showed : boolean;
-    private intersectPointed = false;
-    private inrangePointed = 0;
-    private color : number[];
-    private changeColor = [0,0,0,1];
-    private inOfRange = false;
+    protected children : Widget[];
+    protected parent : Widget | null;
+    protected width : number;
+    protected minWidth:number;
+    protected maxWidth:number;
+    protected minHeight:number;
+    protected maxHeight:number;
+    protected height : number;
+    protected originCoord : number[];
+    protected showed = true;
+    protected intersectPointed = false;
+    protected inrangePointed = 0;
+    protected color : number[];
+    protected changeColor = [0,0,0,1];
+    protected inOfRange = false;
+    protected enableSize = true;
+    protected enableMove = true;
+    protected zbuffer = 0.1;
+    protected enableFocusChange = true;
 }

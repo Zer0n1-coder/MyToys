@@ -70,7 +70,7 @@ export class Renderer{
         gl.viewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
         widgetShader.use();
         widgetShader.setMat4("projection", projection);
