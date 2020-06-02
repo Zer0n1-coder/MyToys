@@ -11,7 +11,7 @@ export class Widget extends Object_ {
         this.inOfRange = false;
         this.enableSize = true;
         this.enableMove = true;
-        this.zbuffer = 0.1;
+        this.zbuffer = -0.5;
         this.enableFocusChange = true;
         this.children = new Array();
         this.parent = null;
@@ -29,7 +29,7 @@ export class Widget extends Object_ {
         }
         else
             this.originCoord = [0, 0];
-        this.color = [1, 1, 1, 0.4];
+        this.color = [1, 1, 1, 1];
         renderObjects.push(this);
     }
     //public:
@@ -71,11 +71,10 @@ export class Widget extends Object_ {
         return this.zbuffer;
     }
     //onFirst 和onUpdate 函数都是提供给渲染器调用，不要重载
-    onFirst() {
-        this.drawEvent();
+    advance() {
+        this.advanceEvent();
     }
-    onUpdate() {
-        //不显示将不会渲染和响应任何事件，只能通过对象之间的通信来让该对象显示之后响应事件
+    event() {
         if (!this.showed)
             return;
         //响应各种事件
@@ -99,7 +98,15 @@ export class Widget extends Object_ {
             this.inOfRange = false;
             this.focusOutEvent(mousemoveQueue[0]);
         }
-        this.frameEvent();
+    }
+    update() {
+        if (!this.showed)
+            return;
+        this.updateEvent();
+    }
+    rendering() {
+        if (!this.showed)
+            return;
         //渲染控件
         let model = mat4.create();
         mat4.translate(model, model, vec3.fromValues(this.originCoord[0], this.originCoord[1], 0.0));
@@ -117,11 +124,11 @@ export class Widget extends Object_ {
     focusOutEvent(ev) {
     }
     //渲染前调用一次
-    drawEvent() {
+    advanceEvent() {
         this.drawWidget();
     }
     //每一帧调用
-    frameEvent() {
+    updateEvent() {
         this.updateFrame();
     }
     mousePressEvent(ev) {
@@ -160,13 +167,20 @@ export class Widget extends Object_ {
     updateFrame() {
         this.changeColor = [this.color[0], this.color[1], this.color[2], this.color[3]];
         if (this.intersect(curCoord) && this.enableFocusChange) {
-            this.changeColor[3] += 0.2;
+            this.changeColor[0] -= 0.2;
+            this.changeColor[1] -= 0.2;
+            this.changeColor[2] -= 0.2;
         }
         if (mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove) {
+            let deltaX = 0;
+            let deltaY = 0;
             for (let mousemoveEvent of mousemoveQueue) {
-                this.originCoord[0] += mousemoveEvent.movementX;
-                this.originCoord[1] += mousemoveEvent.movementY;
+                deltaX += mousemoveEvent.movementX;
+                deltaY += mousemoveEvent.movementY;
             }
+            this.changePos(deltaX, deltaY);
+            for (let child of this.children)
+                child.changePos(deltaX, deltaY);
         }
         if (mousemoveQueue.length > 0 && this.inrangePointed !== 0 && this.enableSize) {
             if (this.inrangePointed === 1) {
@@ -232,6 +246,10 @@ export class Widget extends Object_ {
                 }
             }
         }
+    }
+    changePos(deltaX, deltaY) {
+        this.originCoord[0] += deltaX;
+        this.originCoord[1] += deltaY;
     }
     intersect(mousePos) {
         if (mousePos[0] > this.originCoord[0] && mousePos[1] > this.originCoord[1] && mousePos[0] < (this.originCoord[0] + this.width) && mousePos[1] < (this.originCoord[1] + this.height))

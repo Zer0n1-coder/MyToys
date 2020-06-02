@@ -12,11 +12,13 @@ export class Button extends Widget{
         this.text = text;
     }
 
-    protected frameEvent(){
-        super.frameEvent();
+    protected updateEvent(){
+        super.updateEvent();
 
         if(this.intersectPointed){
-            this.changeColor[3] += 0.2;
+            this.changeColor[0] -= 0.2;
+            this.changeColor[1] -= 0.2;
+            this.changeColor[2] -= 0.2;
         }
     }
 

@@ -9,10 +9,12 @@ export class Button extends Widget {
     setText(text) {
         this.text = text;
     }
-    frameEvent() {
-        super.frameEvent();
+    updateEvent() {
+        super.updateEvent();
         if (this.intersectPointed) {
-            this.changeColor[3] += 0.2;
+            this.changeColor[0] -= 0.2;
+            this.changeColor[1] -= 0.2;
+            this.changeColor[2] -= 0.2;
         }
     }
 }

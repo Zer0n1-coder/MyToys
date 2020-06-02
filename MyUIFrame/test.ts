@@ -1,4 +1,4 @@
-import { Widget } from "./Widget";
+import { Window_ } from "./Window";
 import { Renderer } from "./Renderer";
 import { Button } from "./Button";
 import { TaskBar } from "./TaskBar";
@@ -13,17 +13,23 @@ export function test(){
     taskBar.setHeight(50);
     taskBar.show();
 
-    let widget = new Widget(null);
-    widget.setWidth(500);
-    widget.setHeight(500);
-    widget.setOrigin([200,200]);
-    widget.show();
+    let window = new Window_(null);
+    window.setWidth(500);
+    window.setHeight(500);
+    window.setOrigin([200,200]);
+    window.show();
 
-    let button = new Button(widget);
+    let button = new Button(window);
     button.setWidth(100);
     button.setHeight(50);
-    button.setZ(0.2);
+    button.setColor([0.9,0.9,0.9]);
     button.show();
+
+    let button1 = new Button(null);
+    button1.setWidth(100);
+    button1.setHeight(50);
+    button1.setOrigin([0,100]);
+    button1.show();
 
     Renderer.render();
 }

@@ -69,14 +69,14 @@ export class Renderer{
 
         gl.viewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        //gl.enable(gl.BLEND);
+        //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
         widgetShader.use();
         widgetShader.setMat4("projection", projection);
 
         for(let widget of renderObjects)
-            widget.onFirst();
+            widget.advance();
 
         function frame() {
             //let currentFrame = (new Date).getTime() / 1000;
@@ -88,7 +88,13 @@ export class Renderer{
             Renderer.drawDesktop();
 
             for(let widget of renderObjects){
-                widget.onUpdate();
+                widget.event();
+            }
+            for(let widget of renderObjects){
+                widget.update();
+            }
+            for(let widget of renderObjects){
+                widget.rendering();
             }
             mouseupQueue.length = 0;
             mousedownQueue.length = 0;
