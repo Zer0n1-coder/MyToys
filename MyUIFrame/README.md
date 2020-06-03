@@ -10,7 +10,7 @@
 //首先你需要在两个控件之中，分别实现信号函数和槽函数，具体实现要求如下：
 //信号函数：
 oneSign(arg : number){  //可以有任意个参数，这里使用一个参数作为例子，并且信号函数和槽函数的参数要一致，这一点和Qt的一样
-  this.callFunc("oneSign",[number]);  //Qt里面是不用实现信号函数的，它是由元对象编译器代为实现，但是这里我们需要实现它，只需要调用基类的callFunc函数传入信号函数名和参数数组即可。
+  this.callFunc("oneSign",[number]);  //Qt里面不需要自己实现信号函数，它是由元对象编译器代为实现，但是这里我们需要实现它，只需要调用基类的callFunc函数传入信号函数名和参数数组即可。
 }
 //槽函数：
 oneSlot(arg:number){
@@ -23,5 +23,6 @@ this.connect("oneSign",function(args:any[]){ widget.oneSlot(<number>args[0])}); 
 //最后即是在需要发送信号的地方调用信号函数即可，Qt里面是类似于这样的语句  emit func();
 this.oneSign(233);
 ```
+形式上和Qt的信号与槽类似，但是实现上差别很大，发生连接的地方不止是对象内，对象外同样可以连接，只要能调用对象内的信号和槽函数即可，并且接收信号的槽函数不一定就是对象的成员函数也可以是lambda表达式，这一点和Qt中的一致。
 ## 当前效果
 ![效果](https://github.com/Zer0n1-coder/MyToys/blob/master/MyUIFrame/rendering.jpg)  
