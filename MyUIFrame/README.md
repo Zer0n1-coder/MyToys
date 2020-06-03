@@ -7,7 +7,21 @@
 4. 开始有uwp范了，win10桌面界面的透明效果，在该框架中可以轻松使用混合技术实现（当前已关闭，因为和深度测试冲突）。
 5. 实现typescript版的“信号与槽”功能；（想实现控件之间的通信，所以参考了Qt的信息与槽的实现。但是，Qt的信号与槽利用了其元对象系统实现，想用typescript实现类似的效果是不可能的，所以我借鉴了信号与槽的外壳，内部实现则是利用了typescript语言特性，勉强算是实现了一个类似的信号与槽的功能，代码演示如下）  
 ```typescript
-let type = 2;
+//首先你需要在两个控件之中，分别实现信号函数和槽函数，具体实现要求如下：
+//信号函数：
+oneSign(arg : number){  //可以有任意个参数，这里使用一个参数作为例子，并且信号函数和槽函数的参数要一致，这一点和Qt的一样
+  this.callFunc("oneSign",[number]);  //Qt里面是不用实现信号函数的，它是由元对象编译器代为实现，但是这里我们需要实现它，只需要调用基类的callFunc函数传入信号函数名和参数数组即可。
+}
+//槽函数：
+oneSlot(arg:number){
+  //这里可以实现你想要达到的目的
+}
+
+//准备好了信号和槽函数就可以进行连接，在需要连接的地方按照如下编写即可连接:
+this.connect("oneSign",function(args:any[]){ widget.oneSlot(<number>args[0])});  //第二个参数是一个lambda表达式，里面调用了槽函数
+
+//最后即是在需要发送信号的地方调用信号函数即可，Qt里面是类似于这样的语句  emit func();
+this.oneSign(233);
 ```
 ## 当前效果
 ![效果](https://github.com/Zer0n1-coder/MyToys/blob/master/MyUIFrame/rendering.jpg)  
