@@ -16,3 +16,6 @@ export let desktopShader = new Shader("./res/desktop.vs","./res/desktop.frag");
 export let desktopTexture =loadTextureFromFile("background",false);
 export let projection = mat4.ortho(mat4.create(),0.0, SCR_WIDTH, SCR_HEIGHT, 0.0, -1.0, 1.0);
 export let renderObjects = new Array<Widget>();
+export const originZbuffer = -0.5;
+export let minZbuffer = 1.0;
+export let maxZbuffer = -1.0;

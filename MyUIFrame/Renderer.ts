@@ -1,5 +1,4 @@
-import { Widget } from "./Widget";
-import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, widgetShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture, renderObjects} from "./RenderContext";
+import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, widgetShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture, renderObjects, curCoord, maxZbuffer} from "./RenderContext";
 import { mousedown, mouseup, mousemove } from "./EventHandle";
 import { mat4, vec3 } from "./gl-matrix-ts/index";
 
@@ -86,6 +85,22 @@ export class Renderer{
             gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
             Renderer.drawDesktop();
+
+            let highest = null;
+            for(let widget of renderObjects){
+                widget.setMouseOn(false);
+                if (widget.intersect(curCoord)){
+                    if(highest === null || highest.getZbuffer() < widget.getZbuffer())
+                        highest = widget;
+                }
+            }
+            highest?.setMouseOn(true);
+
+            for(let widget of renderObjects){
+                if(!widget.getParent() && widget.getTop()){
+                    widget.setZ(maxZbuffer + 0.001);
+                }
+            }
 
             for(let widget of renderObjects){
                 widget.event();

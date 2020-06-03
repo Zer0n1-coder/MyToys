@@ -1,4 +1,4 @@
-import { gl, widgetShader, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord } from "./RenderContext";
+import { gl, widgetShader, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer } from "./RenderContext";
 import { Object_ } from "./Object";
 import { vec3, mat4 } from "./gl-matrix-ts/index";
 
@@ -17,7 +17,7 @@ export class Widget extends Object_{
             parent.children.push(this);
             this.parent = parent;
             this.originCoord = [parent.originCoord[0],parent.originCoord[1]];
-            this.zbuffer = parent.zbuffer+ 0.001;
+            this.zbuffer = parent.zbuffer + 0.001;
         }
         else
             this.originCoord = [0,0];
@@ -53,10 +53,7 @@ export class Widget extends Object_{
             this.maxHeight = height;
     }
     setOrigin(orig:number[]){
-        if(this.parent)
-            this.originCoord = [orig[0] + this.originCoord[0], orig[1] + this.originCoord[1]];
-        else
-            this.originCoord = orig;
+        this.originCoord = orig;
     }
     setColor(color:number[]){
         this.color[0] = color[0];
@@ -64,15 +61,31 @@ export class Widget extends Object_{
         this.color[2] = color[2];
     }
 
+    getParent(){
+        return this.parent;
+    }
+
+    getTop(){
+        return this.willTop;
+    }
+    setTop(b : boolean){
+        this.willTop = b;
+    }
+
+    setMouseOn(b : boolean){
+        this.mouseOn = b;
+    }
+
     getZbuffer(){
         return this.zbuffer;
     }
 
-    //onFirst 和onUpdate 函数都是提供给渲染器调用，不要重载
+    //前处理
     advance(){
         this.advanceEvent();
     }
 
+    //事件分发以及根据事件改变widget当前状态
     event(){
         if(!this.showed)
             return;
@@ -83,7 +96,7 @@ export class Widget extends Object_{
         }
             
         if(mousedownQueue.length > 0){
-            if(this.intersect([mousedownQueue[0].offsetX,mousedownQueue[0].offsetY])){
+            if(this.mouseOn){
                 this.intersectPointed = true;
                 this.mousePressEvent(mousedownQueue[0]);
             }
@@ -92,15 +105,17 @@ export class Widget extends Object_{
             }   
         }
 
-        if(mousemoveQueue.length > 0 &&this.intersect([mousemoveQueue[0].offsetX,mousemoveQueue[0].offsetY])&&!this.inOfRange){
+        if(mousemoveQueue.length > 0 &&this.mouseOn&&!this.inOfRange){
             this.inOfRange = true;
             this.focusInEvent(mousemoveQueue[0]);
         }
-        else if(mousemoveQueue.length > 0 &&!this.intersect([mousemoveQueue[0].offsetX,mousemoveQueue[0].offsetY])&&this.inOfRange){
+        else if(mousemoveQueue.length > 0 &&!this.mouseOn&&this.inOfRange){
             this.inOfRange = false;
             this.focusOutEvent(mousemoveQueue[0]);
         }
     }
+
+    //实现widget反馈效果
     update(){
         if(!this.showed)
             return;
@@ -108,6 +123,7 @@ export class Widget extends Object_{
         this.updateEvent();
     }
 
+    //根据当前状态渲染出widget
     rendering(){
         if(!this.showed)
             return;
@@ -115,7 +131,14 @@ export class Widget extends Object_{
         //渲染控件
         let model = mat4.create();
 
-        mat4.translate(model, model, vec3.fromValues(this.originCoord[0], this.originCoord[1], 0.0));
+        let realCoord = [this.originCoord[0],this.originCoord[1]];
+        if(this.parent){
+            realCoord[0] += this.parent.originCoord[0];
+            realCoord[1] += this.parent.originCoord[1];
+
+            this.zbuffer = this.parent.zbuffer + 0.001;
+        }
+        mat4.translate(model, model, vec3.fromValues(realCoord[0], realCoord[1], 0.0));
         mat4.scale(model, model, vec3.fromValues(this.width, this.height, 1.0));
 
         widgetShader.setMat4("model", model,true);
@@ -186,7 +209,7 @@ export class Widget extends Object_{
     //private:
     private updateFrame(){
         this.changeColor = [this.color[0],this.color[1],this.color[2],this.color[3]];
-        if(this.intersect(curCoord) && this.enableFocusChange){
+        if(this.intersect(curCoord) && this.enableFocusChange && this.mouseOn){
             this.changeColor[0] -= 0.2;
             this.changeColor[1] -= 0.2;
             this.changeColor[2] -= 0.2;
@@ -201,9 +224,6 @@ export class Widget extends Object_{
                 deltaY += mousemoveEvent.movementY;
             }
             this.changePos(deltaX,deltaY);
-            for(let child of this.children)
-                child.changePos(deltaX,deltaY);
-
         }
         if(mousemoveQueue.length > 0 && this.inrangePointed !== 0 && this.enableSize){
             if(this.inrangePointed === 1){
@@ -281,24 +301,36 @@ export class Widget extends Object_{
         this.originCoord[1] += deltaY;
     }
 
-    private intersect(mousePos:number[]){
-        if(mousePos[0] > this.originCoord[0] && mousePos[1] > this.originCoord[1] &&mousePos[0] < (this.originCoord[0] + this.width)&&mousePos[1] < (this.originCoord[1] + this.height))
+    public intersect(mousePos:number[]){
+        let realCoord = [this.originCoord[0],this.originCoord[1]];
+        if(this.parent){
+            realCoord[0] += this.parent.originCoord[0];
+            realCoord[1] += this.parent.originCoord[1];
+        }
+
+        if(mousePos[0] > realCoord[0] && mousePos[1] > realCoord[1] &&mousePos[0] < (realCoord[0] + this.width)&&mousePos[1] < (realCoord[1] + this.height))
             return true;
         else
             return false;
     }
 
     private inRange(mousePos:number[]){
-        if(mousePos[0] > this.originCoord[0] && mousePos[0] < (this.originCoord[0] + this.width) && mousePos[1] > (this.originCoord[1] - 10)&& mousePos[1] < this.originCoord[1]){
+        let realCoord = [this.originCoord[0],this.originCoord[1]];
+        if(this.parent){
+            realCoord[0] += this.parent.originCoord[0];
+            realCoord[1] += this.parent.originCoord[1];
+        }
+
+        if(mousePos[0] > realCoord[0] && mousePos[0] < (realCoord[0] + this.width) && mousePos[1] > (realCoord[1] - 10)&& mousePos[1] < realCoord[1]){
             return 1;
         }
-        else if(mousePos[0] > (this.originCoord[0] - 10) &&mousePos[0] < this.originCoord[0] && mousePos[1] > this.originCoord[1] && mousePos[1] < (this.originCoord[1] + this.height)){
+        else if(mousePos[0] > (realCoord[0] - 10) &&mousePos[0] < realCoord[0] && mousePos[1] > realCoord[1] && mousePos[1] < (realCoord[1] + this.height)){
             return 2;
         }
-        else if(mousePos[0] > this.originCoord[0] && mousePos[0] < (this.originCoord[0] + this.width) && mousePos[1] < (this.originCoord[1] + this.height + 10)&& mousePos[1] > (this.originCoord[1] + this.height)){
+        else if(mousePos[0] > realCoord[0] && mousePos[0] < (realCoord[0] + this.width) && mousePos[1] < (realCoord[1] + this.height + 10)&& mousePos[1] > (realCoord[1] + this.height)){
             return 3;
         }
-        else if(mousePos[0] < (this.originCoord[0] + this.width + 10) &&mousePos[0] > (this.originCoord[0] + this.width) && mousePos[1] > this.originCoord[1] && mousePos[1] < (this.originCoord[1] + this.height)){
+        else if(mousePos[0] < (realCoord[0] + this.width + 10) &&mousePos[0] > (realCoord[0] + this.width) && mousePos[1] > realCoord[1] && mousePos[1] < (realCoord[1] + this.height)){
             return 4;
         }
         else
@@ -322,6 +354,8 @@ export class Widget extends Object_{
     protected inOfRange = false;
     protected enableSize = true;
     protected enableMove = true;
-    protected zbuffer = -0.5;
+    protected zbuffer = originZbuffer;
     protected enableFocusChange = true;
+    protected mouseOn = false;
+    protected willTop = false;
 }

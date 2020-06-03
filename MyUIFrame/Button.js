@@ -17,4 +17,7 @@ export class Button extends Widget {
             this.changeColor[2] -= 0.2;
         }
     }
+    oneSlot(num) {
+        alert("hello world!" + num);
+    }
 }

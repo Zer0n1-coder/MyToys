@@ -22,5 +22,9 @@ export class Button extends Widget{
         }
     }
 
+    oneSlot(num:number){
+        alert("hello world!" + num);
+    }
+
     private text : string;
 }

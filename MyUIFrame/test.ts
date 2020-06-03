@@ -1,9 +1,8 @@
 import { Window_ } from "./Window";
 import { Renderer } from "./Renderer";
-import { Button } from "./Button";
 import { TaskBar } from "./TaskBar";
 import { SCR_HEIGHT, SCR_WIDTH } from "./RenderContext";
-
+import { Dialog } from "./Dialog";
 
 export function test(){
 
@@ -19,17 +18,8 @@ export function test(){
     window.setOrigin([200,200]);
     window.show();
 
-    let button = new Button(window);
-    button.setWidth(100);
-    button.setHeight(50);
-    button.setColor([0.9,0.9,0.9]);
-    button.show();
-
-    let button1 = new Button(null);
-    button1.setWidth(100);
-    button1.setHeight(50);
-    button1.setOrigin([0,100]);
-    button1.show();
+    let dialog = new Dialog(null);
+    dialog.show();
 
     Renderer.render();
 }
