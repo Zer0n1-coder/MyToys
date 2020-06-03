@@ -7,7 +7,7 @@
 4. 开始有uwp范了，win10桌面界面的透明效果，在该框架中可以轻松使用混合技术实现（当前已关闭，因为和深度测试冲突）。
 5. 实现typescript版的“信号与槽”功能；（想实现控件之间的通信，所以参考了Qt的信息与槽的实现。但是，Qt的信号与槽利用了其元对象系统实现，想用typescript实现类似的效果是不可能的，所以我借鉴了信号与槽的外壳，内部实现则是利用了typescript语言特性，勉强算是实现了一个类似的信号与槽的功能，代码演示如下）  
 ```typescript
-let
+let type = 2;
 ```
 ## 当前效果
 ![效果](https://github.com/Zer0n1-coder/MyToys/blob/master/MyUIFrame/rendering.jpg)  
