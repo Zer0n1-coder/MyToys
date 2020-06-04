@@ -1,4 +1,4 @@
-import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, widgetShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture, renderObjects, curCoord, maxZbuffer} from "./RenderContext";
+import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, widgetShader, mousedownQueue,mousemoveQueue, projection, mouseupQueue, desktopShader, desktopTexture, renderObjects, curCoord, topZbuffer, originZbuffer, resetTopbuffer} from "./RenderContext";
 import { mousedown, mouseup, mousemove } from "./EventHandle";
 import { mat4, vec3 } from "./gl-matrix-ts/index";
 
@@ -74,6 +74,11 @@ export class Renderer{
         widgetShader.use();
         widgetShader.setMat4("projection", projection);
 
+        for(let widget of renderObjects){
+            widget.lineShader.use();
+            widget.lineShader.setMat4("projection", projection);
+        }
+
         for(let widget of renderObjects)
             widget.advance();
 
@@ -97,10 +102,22 @@ export class Renderer{
             highest?.setMouseOn(true);
 
             for(let widget of renderObjects){
-                if(!widget.getParent() && widget.getTop()){
-                    widget.setZ(maxZbuffer + 0.001);
+                if(!widget.enableChangeZ())
+                    continue;
+
+                let tmpParent = widget.getParent();
+                if(tmpParent && widget.getTop()){
+                    widget.setZ(tmpParent.getZbuffer() + 0.001);
+                    continue;
+                }
+                if(topZbuffer !== -1 && widget.getZbuffer() > topZbuffer){
+                    widget.cutZbuffer();
+                }
+                else if((topZbuffer - 0.001) < widget.getZbuffer() && (topZbuffer + 0.001) > widget.getZbuffer()){
+                    widget.setZ(originZbuffer - 0.01);
                 }
             }
+            resetTopbuffer();
 
             for(let widget of renderObjects){
                 widget.event();

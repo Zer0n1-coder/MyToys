@@ -1,3 +1,5 @@
+import { Shader } from "./Shader";
+
 type SlotFunc = (args : any[])=>void;
 
 export class Object_{
@@ -27,4 +29,5 @@ export class Object_{
     
     eventMap = new Map<string,SlotFunc[]>();
     VAO !:WebGLVertexArrayObject;
+    lineShader = new Shader('./res/line.vs', './res/line.frag');
 }

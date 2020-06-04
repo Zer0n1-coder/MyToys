@@ -1,4 +1,4 @@
-import { gl, widgetShader, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer } from "./RenderContext";
+import { gl, widgetShader, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer,changeZbuffer, topZbuffer, setTopbuffer } from "./RenderContext";
 import { Object_ } from "./Object";
 import { vec3, mat4 } from "./gl-matrix-ts/index";
 
@@ -19,8 +19,11 @@ export class Widget extends Object_{
             this.originCoord = [parent.originCoord[0],parent.originCoord[1]];
             this.zbuffer = parent.zbuffer + 0.001;
         }
-        else
+        else{
             this.originCoord = [0,0];
+            this.zbuffer = originZbuffer;
+            changeZbuffer();
+        }
 
         this.color = [1,1,1,1];
             
@@ -72,6 +75,10 @@ export class Widget extends Object_{
         this.willTop = b;
     }
 
+    enableChangeZ(){
+        return this.enableZbuffer;
+    }
+
     setMouseOn(b : boolean){
         this.mouseOn = b;
     }
@@ -79,7 +86,9 @@ export class Widget extends Object_{
     getZbuffer(){
         return this.zbuffer;
     }
-
+    cutZbuffer(){
+        this.zbuffer -= 0.01;
+    }
     //前处理
     advance(){
         this.advanceEvent();
@@ -146,6 +155,12 @@ export class Widget extends Object_{
         widgetShader.setFloat("zbuffer",this.zbuffer,true);
         gl.bindVertexArray(this.VAO);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        this.lineShader.setMat4("model", model,true);
+        this.lineShader.setVec4("color",this.changeColor,true);
+        this.lineShader.setFloat("zbuffer",this.zbuffer + 0.0005,true);
+        gl.drawArrays(gl.LINE_STRIP,0,3);
+        gl.drawArrays(gl.LINE_STRIP,3,3);
         gl.bindVertexArray(null);
     }
 
@@ -180,13 +195,13 @@ export class Widget extends Object_{
 
         let vertices = new Float32Array([
             // 位置     // 纹理
-            0.0, 1.0, 0.0, 1.0,
-            1.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 0.0,
-
-            0.0, 1.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 0.0,
             1.0, 1.0, 1.0, 1.0,
-            1.0, 0.0, 1.0, 0.0
+
+            1.0, 1.0, 1.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 0.0, 0.0
         ]);
 
         let tmpVAO = gl.createVertexArray();
@@ -213,6 +228,10 @@ export class Widget extends Object_{
             this.changeColor[0] -= 0.2;
             this.changeColor[1] -= 0.2;
             this.changeColor[2] -= 0.2;
+        }
+
+        if(this.intersectPointed && this.parent === null){
+            setTopbuffer(this.zbuffer);
         }
 
         if(mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove){
@@ -354,8 +373,9 @@ export class Widget extends Object_{
     protected inOfRange = false;
     protected enableSize = true;
     protected enableMove = true;
-    protected zbuffer = originZbuffer;
+    protected zbuffer :number;
     protected enableFocusChange = true;
+    protected enableZbuffer = true;
     protected mouseOn = false;
     protected willTop = false;
 }
