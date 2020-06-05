@@ -26,8 +26,8 @@ export class Object_{
         }
     }
 
-    
     eventMap = new Map<string,SlotFunc[]>();
     VAO !:WebGLVertexArrayObject;
     lineShader = new Shader('./res/line.vs', './res/line.frag');
+    widgetShader = new Shader('./res/widget.vs', './res/widget.frag');
 }

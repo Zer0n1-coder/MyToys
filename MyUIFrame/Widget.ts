@@ -1,4 +1,4 @@
-import { gl, widgetShader, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer,changeZbuffer, topZbuffer, setTopbuffer } from "./RenderContext";
+import { gl, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer,changeZbuffer, topZbuffer, setTopbuffer } from "./RenderContext";
 import { Object_ } from "./Object";
 import { vec3, mat4 } from "./gl-matrix-ts/index";
 
@@ -66,13 +66,6 @@ export class Widget extends Object_{
 
     getParent(){
         return this.parent;
-    }
-
-    getTop(){
-        return this.willTop;
-    }
-    setTop(b : boolean){
-        this.willTop = b;
     }
 
     enableChangeZ(){
@@ -150,9 +143,9 @@ export class Widget extends Object_{
         mat4.translate(model, model, vec3.fromValues(realCoord[0], realCoord[1], 0.0));
         mat4.scale(model, model, vec3.fromValues(this.width, this.height, 1.0));
 
-        widgetShader.setMat4("model", model,true);
-        widgetShader.setVec4("color",this.changeColor,true);
-        widgetShader.setFloat("zbuffer",this.zbuffer,true);
+        this.widgetShader.setMat4("model", model,true);
+        this.widgetShader.setVec4("color",this.changeColor,true);
+        this.widgetShader.setFloat("zbuffer",this.zbuffer,true);
         gl.bindVertexArray(this.VAO);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -230,8 +223,8 @@ export class Widget extends Object_{
             this.changeColor[2] -= 0.2;
         }
 
-        if(this.intersectPointed && this.parent === null){
-            setTopbuffer(this.zbuffer);
+        if(this.intersectPointed){
+            setTopbuffer(Widget.getRootWidget(this).zbuffer);
         }
 
         if(mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove){
@@ -356,6 +349,27 @@ export class Widget extends Object_{
             return 0;
     }
 
+    static getRootWidget(child:Widget):Widget{
+        return child.parent? this.getRootWidget(child.parent):child;
+    }
+
+    static changeAllChildrenDepth(root:Widget){
+        let queue = new Array<Widget>();
+        queue.push(root);
+        for(;;){
+            let front = queue.shift();
+            if(front && front.parent){
+                front.zbuffer = front.parent.zbuffer + 0.001;
+                for(let child of front.children){
+                    queue.push(child);
+                }
+            }
+            else if(!front){
+                break;
+            }
+        }
+    }
+
     protected children : Widget[];
     protected parent : Widget | null;
     protected width : number;
@@ -377,5 +391,4 @@ export class Widget extends Object_{
     protected enableFocusChange = true;
     protected enableZbuffer = true;
     protected mouseOn = false;
-    protected willTop = false;
 }

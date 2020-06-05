@@ -3,6 +3,7 @@ export class Object_ {
     constructor() {
         this.eventMap = new Map();
         this.lineShader = new Shader('./res/line.vs', './res/line.frag');
+        this.widgetShader = new Shader('./res/widget.vs', './res/widget.frag');
     }
     connect(sign, slot) {
         let funcs = this.eventMap.get(sign);

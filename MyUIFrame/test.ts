@@ -12,11 +12,11 @@ export function test(){
     taskBar.setHeight(50);
     taskBar.show();
 
-    let window = new Window_(null);
-    window.setWidth(500);
-    window.setHeight(500);
-    window.setOrigin([200,200]);
-    window.show();
+    let window_ = new Window_(null);
+    window_.setWidth(500);
+    window_.setHeight(500);
+    window_.setOrigin([200,200]);
+    window_.show();
 
     let dialog = new Dialog(null);
     dialog.show();
