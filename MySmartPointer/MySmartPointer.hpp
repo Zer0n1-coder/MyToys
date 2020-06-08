@@ -15,7 +15,7 @@ public:
 	LockingProxy& operator=(const LockingProxy&) = delete;
 private:
 	std::mutex*		_ptrMutex{nullptr};
-	T*			_ptr{ nullptr };
+	T*				_ptr{ nullptr };
 };
 
 template<class T>
@@ -26,8 +26,8 @@ protected:
 	{
 		constexpr SmartPtrStorage() noexcept = default;
 		~SmartPtrStorage()noexcept { if (ptr) { delete ptr; ptr = nullptr; } }
-		std::mutex		ptr_mutex;
-		T*			ptr{nullptr};
+		std::mutex			ptr_mutex;
+		T*					ptr{nullptr};
 		unsigned long		count{1};
 	};
 
@@ -84,6 +84,14 @@ public:
 	long count()const noexcept{ return _storge ? static_cast<long>(_storge->count):0; }
 
 	T* get() const noexcept { _storge? _storge->ptr : nullptr; }
+
+public:
+	template<class...Types>
+	static MySmartPtr make_ptr(Types&&... args)
+	{
+		return MySmartPtr(new T(std::forward<Types>(args)...));
+	}
+
 private:
 	explicit MySmartPtr(T* ptr)
 	{
@@ -95,14 +103,14 @@ private:
 	static void operator delete(void*) = delete;
 
 private:
-	template<class Type, class...Types>
-	friend MySmartPtr<Type> make_ptr(Types&&... args);
+	//template<class Type, class...Types>
+	//friend MySmartPtr<Type> make_ptr(Types&&... args);
 
 	SmartPtrStorage* _storge{nullptr};
 };
 
-template<class Type,class...Types>
-MySmartPtr<Type> make_ptr(Types&&... args)
-{
-	return MySmartPtr<Type>(new Type(std::forward<Types>(args)...));
-}
+//template<class Type,class...Types>
+//MySmartPtr<Type> make_ptr(Types&&... args)
+//{
+//	return MySmartPtr<Type>(new Type(std::forward<Types>(args)...));
+//}
