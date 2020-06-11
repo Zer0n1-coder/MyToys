@@ -1,7 +1,7 @@
 import { Window_ } from "./Window";
-import { Renderer } from "./Renderer";
+import { Renderer } from "./core/Renderer";
 import { TaskBar } from "./TaskBar";
-import { SCR_HEIGHT, SCR_WIDTH } from "./RenderContext";
+import { SCR_HEIGHT, SCR_WIDTH, canvas } from "./core/RenderContext";
 import { Dialog } from "./Dialog";
 
 export function test(){

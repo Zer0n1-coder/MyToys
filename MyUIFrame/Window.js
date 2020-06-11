@@ -1,4 +1,4 @@
-import { Widget } from "./Widget";
+import { Widget } from "./core/Widget";
 import { Button } from "./Button";
 export class Window_ extends Widget {
     constructor(parent) {

@@ -1,6 +1,6 @@
-import {gl,SCR_WIDTH,SCR_HEIGHT,canvas, mousedownQueue,mousemoveQueue, projection, mouseupQueue, renderObjects, curCoord, topZbuffer, originZbuffer, resetTopbuffer} from "./RenderContext";
+import {gl,SCR_WIDTH,SCR_HEIGHT,canvas,global} from "./RenderContext";
 import { mousedown, mouseup, mousemove } from "./EventHandle";
-import { mat4, vec3 } from "./gl-matrix-ts/index";
+import { mat4, vec3 } from "../gl-matrix-ts/index";
 import { Shader } from "./Shader";
 import { loadTextureFromFile } from "./Tools";
 import {Widget} from "./Widget";
@@ -14,12 +14,12 @@ export class Renderer{
         //gl.enable(gl.BLEND);
         //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-        for(let widget of renderObjects){
-            widget.lineShader.setMat4("projection", projection,true);
-            widget.widgetShader.setMat4("projection", projection,true);
+        for(let widget of global.renderObjects){
+            widget.lineShader.setMat4("projection", global.projection,true);
+            widget.widgetShader.setMat4("projection", global.projection,true);
         }
 
-        for(let widget of renderObjects)
+        for(let widget of global.renderObjects)
             widget.advance();
 
         function frame() {
@@ -33,34 +33,16 @@ export class Renderer{
 
             Renderer.handleWidgetUnderMouse();
 
-            for(let widget of renderObjects){
-                let tmpParent = widget.getParent();
-                if(!widget.enableChangeZ() || tmpParent)
-                    continue;
+            Renderer.handleTopWidget();
 
-                if(topZbuffer !== -1 && widget.getZbuffer() > topZbuffer){
-                    widget.cutZbuffer();
-                }
-                else if((topZbuffer - 0.001) < widget.getZbuffer() && (topZbuffer + 0.001) > widget.getZbuffer()){
-                    widget.setZ(originZbuffer - 0.01);
-                }
-                Widget.changeAllChildrenDepth(widget);
+            for(let widget of global.renderObjects){
+                widget.rendererFrame();
             }
-            resetTopbuffer();
 
-            for(let widget of renderObjects){
-                widget.event();
-            }
-            for(let widget of renderObjects){
-                widget.update();
-            }
-            for(let widget of renderObjects){
-                widget.rendering();
-            }
-            mouseupQueue.length = 0;
-            mousedownQueue.length = 0;
-            mousemoveQueue.length = 0;
-            mousemoveQueue.length = 0;
+            global.mouseupQueue.length = 0;
+            global.mousedownQueue.length = 0;
+            global.mousemoveQueue.length = 0;
+            global.mousemoveQueue.length = 0;
 
             requestAnimationFrame(frame);
         }
@@ -117,19 +99,36 @@ export class Renderer{
 
         this.desktopShader.use();
         this.desktopShader.setInt("desktop", 0);
-        this.desktopShader.setMat4("projection",projection);
+        this.desktopShader.setMat4("projection",global.projection);
     }
 
     private static handleWidgetUnderMouse(){
         let highest = null;
-            for(let widget of renderObjects){
+            for(let widget of global.renderObjects){
                 widget.setMouseOn(false);
-                if (widget.intersect(curCoord)){
+                if (widget.intersect(global.curCoord)){
                     if(highest === null || highest.getZbuffer() < widget.getZbuffer())
                         highest = widget;
                 }
             }
             highest?.setMouseOn(true);
+    }
+
+    private static handleTopWidget(){
+        for(let widget of global.renderObjects){
+            let tmpParent = widget.getParent();
+            if(!widget.enableChangeZ() || tmpParent)
+                continue;
+
+            if(global.topZbuffer !== -1 && widget.getZbuffer() > global.topZbuffer){
+                widget.cutZbuffer();
+            }
+            else if((global.topZbuffer - 0.001) < widget.getZbuffer() && (global.topZbuffer + 0.001) > widget.getZbuffer()){
+                widget.setZ(global.originZbuffer - 0.01);
+            }
+            Widget.changeAllChildrenDepth(widget);
+        }
+        global.topZbuffer = -1;
     }
 
     private static drawDesktop(){

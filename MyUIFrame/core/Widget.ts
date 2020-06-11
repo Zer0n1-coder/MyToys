@@ -1,8 +1,29 @@
-import { gl, mousemoveQueue, renderObjects,mouseupQueue,mousedownQueue, curCoord,originZbuffer,changeZbuffer, topZbuffer, setTopbuffer } from "./RenderContext";
+import { gl, global } from "./RenderContext";
 import { Object_ } from "./Object";
-import { vec3, mat4 } from "./gl-matrix-ts/index";
+import { vec3, mat4 } from "../gl-matrix-ts/index";
 
 export class Widget extends Object_{
+    static getRootWidget(child:Widget):Widget{
+        return child.parent? this.getRootWidget(child.parent):child;
+    }
+
+    static changeAllChildrenDepth(root:Widget){
+        let queue = new Array<Widget>();
+        queue.push(root);
+        for(;;){
+            let front = queue.shift();
+            if(front && front.parent){
+                front.zbuffer = front.parent.zbuffer + 0.001;
+                for(let child of front.children){
+                    queue.push(child);
+                }
+            }
+            else if(!front){
+                break;
+            }
+        }
+    }
+
     constructor(parent : null | Widget){
         super();
         this.children = new Array<Widget>();
@@ -21,13 +42,13 @@ export class Widget extends Object_{
         }
         else{
             this.originCoord = [0,0];
-            this.zbuffer = originZbuffer;
-            changeZbuffer();
+            this.zbuffer = global.originZbuffer;
+            global.originZbuffer += 0.01;
         }
 
         this.color = [1,1,1,1];
             
-        renderObjects.push(this);
+        global.renderObjects.push(this);
     }
 
     //public:
@@ -82,43 +103,63 @@ export class Widget extends Object_{
     cutZbuffer(){
         this.zbuffer -= 0.01;
     }
+
+    rendererFrame(){
+        this.event();
+        this.update();
+        this.rendering();
+    }
+
     //前处理
     advance(){
         this.advanceEvent();
     }
 
+    intersect(mousePos:number[]){
+        let realCoord = [this.originCoord[0],this.originCoord[1]];
+        if(this.parent){
+            realCoord[0] += this.parent.originCoord[0];
+            realCoord[1] += this.parent.originCoord[1];
+        }
+
+        if(mousePos[0] > realCoord[0] && mousePos[1] > realCoord[1] &&mousePos[0] < (realCoord[0] + this.width)&&mousePos[1] < (realCoord[1] + this.height))
+            return true;
+        else
+            return false;
+    }
+
     //事件分发以及根据事件改变widget当前状态
-    event(){
+    protected event(){
         if(!this.showed)
             return;
 
         //响应各种事件
-        if(mouseupQueue.length >0){
-            this.mouseReleaseEvent(mouseupQueue[0]);
+        if(global.mouseupQueue.length >0){
+            this.mouseReleaseEvent(global.mouseupQueue[0]);
         }
             
-        if(mousedownQueue.length > 0){
+        if(global.mousedownQueue.length > 0){
             if(this.mouseOn){
                 this.intersectPointed = true;
-                this.mousePressEvent(mousedownQueue[0]);
+                this.mousePressEvent(global.mousedownQueue[0]);
             }
             else{
-                this.inrangePointed =this.inRange([mousedownQueue[0].offsetX,mousedownQueue[0].offsetY]);
+                this.inrangePointed =this.inRange([global.mousedownQueue[0].offsetX,global.mousedownQueue[0].offsetY]);
             }   
         }
 
-        if(mousemoveQueue.length > 0 &&this.mouseOn&&!this.inOfRange){
+        if(global.mousemoveQueue.length > 0 &&this.mouseOn&&!this.inOfRange){
             this.inOfRange = true;
-            this.focusInEvent(mousemoveQueue[0]);
+            this.focusInEvent(global.mousemoveQueue[0]);
         }
-        else if(mousemoveQueue.length > 0 &&!this.mouseOn&&this.inOfRange){
+        else if(global.mousemoveQueue.length > 0 &&!this.mouseOn&&this.inOfRange){
             this.inOfRange = false;
-            this.focusOutEvent(mousemoveQueue[0]);
+            this.focusOutEvent(global.mousemoveQueue[0]);
         }
     }
 
     //实现widget反馈效果
-    update(){
+    protected update(){
         if(!this.showed)
             return;
 
@@ -126,7 +167,7 @@ export class Widget extends Object_{
     }
 
     //根据当前状态渲染出widget
-    rendering(){
+    protected rendering(){
         if(!this.showed)
             return;
 
@@ -217,30 +258,36 @@ export class Widget extends Object_{
     //private:
     private updateFrame(){
         this.changeColor = [this.color[0],this.color[1],this.color[2],this.color[3]];
-        if(this.intersect(curCoord) && this.enableFocusChange && this.mouseOn){
+        if(this.intersect(global.curCoord) && this.enableFocusChange && this.mouseOn){
             this.changeColor[0] -= 0.2;
             this.changeColor[1] -= 0.2;
             this.changeColor[2] -= 0.2;
         }
 
         if(this.intersectPointed){
-            setTopbuffer(Widget.getRootWidget(this).zbuffer);
+            global.topZbuffer = Widget.getRootWidget(this).zbuffer;
+
+            if(this.enableTouchChange){
+                this.changeColor[0] -= 0.2;
+                this.changeColor[1] -= 0.2;
+                this.changeColor[2] -= 0.2;
+            }
         }
 
-        if(mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove){
+        if(global.mousemoveQueue.length > 0 && this.intersectPointed && this.enableMove){
             let deltaX = 0;
             let deltaY = 0;
 
-            for(let mousemoveEvent of mousemoveQueue){
+            for(let mousemoveEvent of global.mousemoveQueue){
                 deltaX += mousemoveEvent.movementX;
                 deltaY += mousemoveEvent.movementY;
             }
             this.changePos(deltaX,deltaY);
         }
-        if(mousemoveQueue.length > 0 && this.inrangePointed !== 0 && this.enableSize){
+        if(global.mousemoveQueue.length > 0 && this.inrangePointed !== 0 && this.enableSize){
             if(this.inrangePointed === 1){
                 let tmpHeight = this.height;
-                for(let mousemoveEvent of mousemoveQueue)
+                for(let mousemoveEvent of global.mousemoveQueue)
                     tmpHeight -= mousemoveEvent.movementY;
 
                 if(tmpHeight < this.minHeight){
@@ -258,7 +305,7 @@ export class Widget extends Object_{
             }
             else if(this.inrangePointed === 2){
                 let tmpWidth = this.width;
-                for(let mousemoveEvent of mousemoveQueue)
+                for(let mousemoveEvent of global.mousemoveQueue)
                     tmpWidth -= mousemoveEvent.movementX;
 
                 if(tmpWidth < this.minWidth){
@@ -276,7 +323,7 @@ export class Widget extends Object_{
             }
             else if(this.inrangePointed === 3){
                 let tmpHeight = this.height;
-                for(let mousemoveEvent of mousemoveQueue)
+                for(let mousemoveEvent of global.mousemoveQueue)
                     tmpHeight += mousemoveEvent.movementY;
 
                 if(tmpHeight < this.minHeight){
@@ -292,7 +339,7 @@ export class Widget extends Object_{
             else if(this.inrangePointed === 4){
                 let tmpWidth = this.width;
 
-                for(let mousemoveEvent of mousemoveQueue)
+                for(let mousemoveEvent of global.mousemoveQueue)
                     tmpWidth += mousemoveEvent.movementX;
 
                 if(tmpWidth < this.minWidth){
@@ -311,19 +358,6 @@ export class Widget extends Object_{
     private changePos(deltaX : number,deltaY:number){
         this.originCoord[0] += deltaX;
         this.originCoord[1] += deltaY;
-    }
-
-    public intersect(mousePos:number[]){
-        let realCoord = [this.originCoord[0],this.originCoord[1]];
-        if(this.parent){
-            realCoord[0] += this.parent.originCoord[0];
-            realCoord[1] += this.parent.originCoord[1];
-        }
-
-        if(mousePos[0] > realCoord[0] && mousePos[1] > realCoord[1] &&mousePos[0] < (realCoord[0] + this.width)&&mousePos[1] < (realCoord[1] + this.height))
-            return true;
-        else
-            return false;
     }
 
     private inRange(mousePos:number[]){
@@ -349,27 +383,7 @@ export class Widget extends Object_{
             return 0;
     }
 
-    static getRootWidget(child:Widget):Widget{
-        return child.parent? this.getRootWidget(child.parent):child;
-    }
-
-    static changeAllChildrenDepth(root:Widget){
-        let queue = new Array<Widget>();
-        queue.push(root);
-        for(;;){
-            let front = queue.shift();
-            if(front && front.parent){
-                front.zbuffer = front.parent.zbuffer + 0.001;
-                for(let child of front.children){
-                    queue.push(child);
-                }
-            }
-            else if(!front){
-                break;
-            }
-        }
-    }
-
+    //widget属性
     protected children : Widget[];
     protected parent : Widget | null;
     protected width : number;
@@ -380,15 +394,18 @@ export class Widget extends Object_{
     protected height : number;
     protected originCoord : number[];
     protected showed = true;
-    protected intersectPointed = false;
-    protected inrangePointed = 0;
     protected color : number[];
-    protected changeColor = [0,0,0,1];
-    protected inOfRange = false;
     protected enableSize = true;
     protected enableMove = true;
-    protected zbuffer :number;
     protected enableFocusChange = true;
+    protected enableTouchChange = false;
     protected enableZbuffer = true;
+    protected zbuffer :number;
     protected mouseOn = false;
+
+    //widget状态量
+    private intersectPointed = false;
+    private inrangePointed = 0;
+    private changeColor = [0,0,0,1];
+    private inOfRange = false;
 }

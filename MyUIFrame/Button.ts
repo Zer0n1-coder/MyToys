@@ -1,4 +1,4 @@
-import { Widget } from "./Widget";
+import { Widget } from "./core/Widget";
 
 export class Button extends Widget{
     constructor(parent : null|Widget){
@@ -6,20 +6,11 @@ export class Button extends Widget{
         this.text = "button";
         this.enableSize = false;
         this.enableMove = false;
+        this.enableTouchChange = true;
     }
 
     setText(text :string){
         this.text = text;
-    }
-
-    protected updateEvent(){
-        super.updateEvent();
-
-        if(this.intersectPointed){
-            this.changeColor[0] -= 0.2;
-            this.changeColor[1] -= 0.2;
-            this.changeColor[2] -= 0.2;
-        }
     }
 
     oneSlot(num:number){
