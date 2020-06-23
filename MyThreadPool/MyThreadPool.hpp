@@ -48,7 +48,7 @@ inline ThreadPool::ThreadPool(size_t threads)
 					task();
 				}
 			}
-			);
+		);
 }
 
 template<class F, class...ArgTypes>
